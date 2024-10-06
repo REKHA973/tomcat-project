@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'  // Name of the Maven installation in Jenkins
+    }
+
+    environment {
+        DEPLOY_PATH = '**/target/*.war'  // Path to the generated WAR file
+        TOMCAT_URL = 'http://52.66.243.166:9090'  // Your Tomcat server URL
+        TOMCAT_CREDENTIALS_ID = 'tomcat-credentials'  // Jenkins credentials ID for Tomcat
+    }
+
+    stages {
+        stage('Clone Repository') {  // Clone the Maven project from Git
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/maven-webapp.git'
+            }
+        }
+
+        stage('Build with Maven') {  // Build the project using Maven
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Deploy to Tomcat') {  // Deploy the WAR file to Tomcat
+            steps {
+                deploy adapters: [tomcat9(
+                    credentialsId: env.TOMCAT_CREDENTIALS_ID,  // Jenkins credentials for Tomcat
+                    url: env.TOMCAT_URL  // Tomcat URL
+                )], contextPath: '/', war: env.DEPLOY_PATH  // Path to the WAR file
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment Successful!'
+        }
+        failure {
+            echo 'Build or deployment failed.'
+        }
+    }
+}
